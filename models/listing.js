@@ -2,6 +2,9 @@ const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;
 
+const DEFAULT_IMAGE =
+    "https://images.unsplash.com/photo-1625505826533-5c80aca7d157?auto=format&fit=crop&w=800&q=60";
+
 const listingSchema = new Schema({
     title: {
         type: String,
@@ -9,14 +12,13 @@ const listingSchema = new Schema({
     },
     description: String,
     image: {
-        filename: {
-            type: String,
-            default: "listingimage"
+        type: String,
+        default: DEFAULT_IMAGE,
+        set: (v) => {
+            if (!v) return DEFAULT_IMAGE;                 // "", null, undefined
+            if (typeof v === "object") return v.url || DEFAULT_IMAGE;
+            return v;
         },
-        url: {
-            type: String,
-            default: "https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b"
-        }
     },
     price: Number,
     location: String,

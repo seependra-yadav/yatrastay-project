@@ -12,7 +12,7 @@ main().then(() => {
 
 const initDb = async ()=>{
     await Listing.deleteMany({});
-    await Listing.insertMany(initData);
+    await Listing.insertMany(initData.data);
     console.log("data was initialized");
 
 };
