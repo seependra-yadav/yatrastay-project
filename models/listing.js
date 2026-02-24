@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Review = require("./review.js");
 
 const Schema = mongoose.Schema;
 
@@ -15,14 +16,28 @@ const listingSchema = new Schema({
         type: String,
         default: DEFAULT_IMAGE,
         set: (v) => {
-            if (!v) return DEFAULT_IMAGE;                 // "", null, undefined
+            if (!v) return DEFAULT_IMAGE;
             if (typeof v === "object") return v.url || DEFAULT_IMAGE;
+            if (v === "[object Object]") return DEFAULT_IMAGE;
             return v;
         },
     },
     price: Number,
     location: String,
-    country: String
+    country: String,
+    reviews:[
+        {
+            type:Schema.Types.ObjectId,
+            ref:"Review"
+        }
+    ]
+});
+
+// Remove all reviews linked to a listing when that listing is deleted.
+listingSchema.post("findOneAndDelete", async (listing) => {
+    if (listing && listing.reviews.length > 0) {
+        await Review.deleteMany({ _id: { $in: listing.reviews } });
+    }
 });
 
 
