@@ -33,7 +33,8 @@ router.get("/:id", wrapAsync(async (req, res) => {
 router.post("/", validateListing, wrapAsync(async (req, res) => {
     const newListing = new Listing(req.body.listing);
     await newListing.save();
-    res.redirect(`/listings/${newListing._id}?success=${encodeURIComponent("Listing created successfully")}`);
+    req.flash("success", "Listing created successfully");
+    res.redirect(`/listings/${newListing._id}`);
 }));
 
 // edit
@@ -51,14 +52,16 @@ router.put("/:id", validateListing, wrapAsync(async (req, res) => {
         req.body.listing.image = listing.image;
     }
     await Listing.findByIdAndUpdate(id, { ...req.body.listing });
-    res.redirect(`/listings/${id}?success=${encodeURIComponent("Listing updated successfully")}`);
+    req.flash("success", "Listing updated successfully");
+    res.redirect(`/listings/${id}`);
 }));
 
 // delete
 router.delete("/:id", wrapAsync(async (req, res) => {
     const { id } = req.params;
     await Listing.findByIdAndDelete(id);
-    res.redirect(`/listings?success=${encodeURIComponent("Listing deleted successfully")}`);
+    req.flash("success", "Listing deleted successfully");
+    res.redirect(`/listings`);
 }));
 
 module.exports = router;
