@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-
+// Review document. `author` controls review delete authorization.
 const reviewSchema = new Schema({
     comment: {
         type: String,
@@ -15,6 +15,10 @@ const reviewSchema = new Schema({
         required: true,
         min:1,
         max:5
+    },
+    author: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
     },
     createAt:{
         type: Date,

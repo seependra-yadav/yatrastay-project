@@ -16,10 +16,12 @@
                              <div class="card-img-overlay"></div>
                         <div class="card-body">
                             <p class="card-text">
+                                <% const ownerName = listing.owner ? (listing.owner.name || listing.owner.email) : "Unknown host"; %>
                                 <b>
                                     <%= listing.title %>
                                 </b> <br>
                                 <%= listing.price != null ? listing.price.toLocaleString("en-IN") : "Price not available" %> <br>
+                                Host: <%= ownerName %>
                             </p>
                         </div>
                     </div>

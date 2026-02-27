@@ -5,10 +5,10 @@ const Listing = require("../models/listing.js");
 const Review = require("../models/review.js");
 const ExpressError = require("../utilis/ExpressError.js");
 const wrapAsync = require("../utilis/wrapAsync.js");
-const { validateReview } = require("../middleware.js");
+const { validateReview, isLoggedIn, isReviewAuthor } = require("../middleware.js");
 
-// create review
-router.post("/", validateReview, wrapAsync(async (req, res) => {
+// POST /listings/:id/reviews - create review and bind author to logged-in user.
+router.post("/", isLoggedIn, validateReview, wrapAsync(async (req, res) => {
     const listing = await Listing.findById(req.params.id);
 
     if (!listing) {
@@ -16,6 +16,7 @@ router.post("/", validateReview, wrapAsync(async (req, res) => {
     }
 
     const newReview = new Review(req.body.review);
+    newReview.author = req.user._id;
     listing.reviews.push(newReview);
     await newReview.save();
     await listing.save();
@@ -24,8 +25,8 @@ router.post("/", validateReview, wrapAsync(async (req, res) => {
     res.redirect(`/listings/${listing._id}`);
 }));
 
-// delete single review
-router.delete("/:reviewId", wrapAsync(async (req, res) => {
+// DELETE /listings/:id/reviews/:reviewId - author-only delete.
+router.delete("/:reviewId", isLoggedIn, isReviewAuthor, wrapAsync(async (req, res) => {
     const { id, reviewId } = req.params;
 
     await Listing.findByIdAndUpdate(id, { $pull: { reviews: reviewId } });
@@ -36,3 +37,4 @@ router.delete("/:reviewId", wrapAsync(async (req, res) => {
 }));
 
 module.exports = router;
+

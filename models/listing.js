@@ -6,6 +6,7 @@ const Schema = mongoose.Schema;
 const DEFAULT_IMAGE =
     "https://images.unsplash.com/photo-1625505826533-5c80aca7d157?auto=format&fit=crop&w=800&q=60";
 
+// Listing document. `owner` controls edit/update/delete authorization.
 const listingSchema = new Schema({
     title: {
         type: String,
@@ -25,6 +26,10 @@ const listingSchema = new Schema({
     price: Number,
     location: String,
     country: String,
+    owner: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+    },
     reviews:[
         {
             type:Schema.Types.ObjectId,
@@ -33,7 +38,7 @@ const listingSchema = new Schema({
     ]
 });
 
-// Remove all reviews linked to a listing when that listing is deleted.
+// Data cleanup: when listing is deleted, remove linked reviews too.
 listingSchema.post("findOneAndDelete", async (listing) => {
     if (listing && listing.reviews.length > 0) {
         await Review.deleteMany({ _id: { $in: listing.reviews } });

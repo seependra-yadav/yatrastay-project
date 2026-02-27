@@ -3,8 +3,14 @@ const passportLocalMongoose = require("passport-local-mongoose");
 
 const Schema = mongoose.Schema;
 
+// User profile + auth identity (email used as username for login).
 const userSchema = new Schema(
     {
+        name: {
+            type: String,
+            required: true,
+            trim: true,
+        },
         email: {
             type: String,
             required: true,
