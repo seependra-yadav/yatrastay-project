@@ -15,6 +15,50 @@ const imageSchema = new Schema(
     { _id: false }
 );
 
+const getDefaultImage = () => ({
+    url: DEFAULT_IMAGE,
+    filename: DEFAULT_IMAGE_FILENAME,
+});
+
+const normalizeImage = (value) => {
+    if (!value) return getDefaultImage();
+
+    if (typeof value === "string") {
+        return { url: value || DEFAULT_IMAGE, filename: DEFAULT_IMAGE_FILENAME };
+    }
+
+    return {
+        url: value.url || DEFAULT_IMAGE,
+        filename: value.filename || DEFAULT_IMAGE_FILENAME,
+    };
+};
+
+const normalizeImages = (value) => {
+    if (!value) return [getDefaultImage()];
+
+    const items = Array.isArray(value) ? value : [value];
+    const normalized = items.map((item) => normalizeImage(item));
+
+    return normalized.length > 0 ? normalized : [getDefaultImage()];
+};
+
+const resolveListingImages = (listing) => {
+    const galleryImages = Array.isArray(listing.images)
+        ? normalizeImages(listing.images)
+        : [];
+    const hasOnlyDefaultGalleryImage =
+        galleryImages.length === 1 &&
+        galleryImages[0].filename === DEFAULT_IMAGE_FILENAME &&
+        galleryImages[0].url === DEFAULT_IMAGE;
+
+    // For legacy records, prefer old `image` if gallery is still default.
+    if (listing.image && (galleryImages.length === 0 || hasOnlyDefaultGalleryImage)) {
+        return [normalizeImage(listing.image)];
+    }
+
+    return galleryImages.length > 0 ? galleryImages : [getDefaultImage()];
+};
+
 const geometrySchema = new Schema(
     {
         type: {
@@ -40,24 +84,14 @@ const listingSchema = new Schema({
     // Cloudinary image metadata. New listings store both URL and filename.
     image: {
         type: imageSchema,
-        default: () => ({
-            url: DEFAULT_IMAGE,
-            filename: DEFAULT_IMAGE_FILENAME,
-        }),
-        set: (value) => {
-            if (!value) {
-                return { url: DEFAULT_IMAGE, filename: DEFAULT_IMAGE_FILENAME };
-            }
-
-            if (typeof value === "string") {
-                return { url: value, filename: DEFAULT_IMAGE_FILENAME };
-            }
-
-            return {
-                url: value.url || DEFAULT_IMAGE,
-                filename: value.filename || DEFAULT_IMAGE_FILENAME,
-            };
-        },
+        default: () => getDefaultImage(),
+        set: normalizeImage,
+    },
+    // Primary gallery field for listing photos.
+    images: {
+        type: [imageSchema],
+        default: () => [getDefaultImage()],
+        set: normalizeImages,
     },
     price: Number,
     location: String,
@@ -83,9 +117,18 @@ listingSchema.index({ geometry: "2dsphere" });
 
 // Unified image URL for both old (string) and new ({ url, filename }) records.
 listingSchema.virtual("imageUrl").get(function () {
-    if (!this.image) return DEFAULT_IMAGE;
-    if (typeof this.image === "string") return this.image || DEFAULT_IMAGE;
-    return this.image.url || DEFAULT_IMAGE;
+    const urls = this.imageUrls;
+    return Array.isArray(urls) && urls.length > 0 ? urls[0] : DEFAULT_IMAGE;
+});
+
+// Unified image URL list for gallery UI.
+listingSchema.virtual("imageUrls").get(function () {
+    return resolveListingImages(this).map((img) => img.url || DEFAULT_IMAGE);
+});
+
+// Unified image object list (url + filename) for edit form actions.
+listingSchema.virtual("imageGallery").get(function () {
+    return resolveListingImages(this);
 });
 
 // Data cleanup: when listing is deleted, remove linked reviews too.

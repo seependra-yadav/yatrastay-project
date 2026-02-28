@@ -4,12 +4,14 @@ const listingSchema = Joi.object({
     listing: Joi.object({
         title: Joi.string().trim().required(),
         description: Joi.string().trim().required(),
-        // Image is uploaded via multer; keep this optional for form payloads.
-        image: Joi.any().optional(),
+        // Images are uploaded via multer.
+        images: Joi.any().optional(),
         price: Joi.number().min(0).required(),
         location: Joi.string().trim().required(),
         country: Joi.string().trim().required()
-    }).required()
+    }).required(),
+    // Optional image filenames selected for deletion on edit page.
+    deleteImages: Joi.array().items(Joi.string()).single().optional(),
 });
 
 const reviewSchema = Joi.object({

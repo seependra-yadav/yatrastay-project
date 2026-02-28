@@ -18,10 +18,19 @@
                         <div class="invalid-feedback">Please enter a description.</div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="image" class="form-label">Upload image</label>
-                        <input name="listing[image]" id="image" type="file" class="form-control" accept="image/*">
-                        <small class="text-muted">If no file is selected, default image will be used.</small>
+                    <div class="mb-3" data-image-picker data-max-files="10" data-max-size-mb="10">
+                        <label for="images" class="form-label">Upload images</label>
+                        <input
+                            name="listing[images]"
+                            id="images"
+                            type="file"
+                            class="form-control"
+                            accept="image/*"
+                            multiple
+                        >
+                        <small class="text-muted">You can upload up to 10 images, 10 MB each. If none are selected, a default image is used.</small>
+                        <div class="selected-upload-images mt-3" data-selected-preview></div>
+                        <small class="text-muted d-block mt-2" data-selected-summary></small>
                     </div>
 
                     <div class="row">
@@ -59,4 +68,5 @@
                 </form>
             </div>
         </div>
+        <script src="/js/listing-image-picker.js"></script>
     </body>

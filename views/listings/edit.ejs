@@ -24,13 +24,42 @@
                         <div class="invalid-feedback">Please enter a description.</div>
 
                     </div>
-                    <div class="mb-3">
-                        <label for="image" class="form-label">Image</label>
-                        <div class="mb-2">
-                            <img src="<%= listing.imageUrl %>" alt="Current listing image" style="max-width: 220px; border-radius: 8px;">
+                    <div class="mb-3" data-image-picker data-max-files="10" data-max-size-mb="10">
+                        <label for="images" class="form-label">Images</label>
+                        <div class="listing-image-grid mb-3">
+                            <% if (listing.imageGallery && listing.imageGallery.length > 0) { %>
+                                <% listing.imageGallery.forEach((imageMeta, index) => { %>
+                                    <div class="listing-image-item">
+                                        <img src="<%= imageMeta.url %>" alt="Current listing image <%= index + 1 %>">
+                                        <% if (imageMeta && imageMeta.filename !== "default-listing-image") { %>
+                                            <div class="form-check mt-2">
+                                                <input
+                                                    class="form-check-input"
+                                                    type="checkbox"
+                                                    name="deleteImages[]"
+                                                    value="<%= imageMeta.filename %>"
+                                                    id="delete-image-<%= index %>"
+                                                >
+                                                <label class="form-check-label" for="delete-image-<%= index %>">Remove</label>
+                                            </div>
+                                        <% } else { %>
+                                            <small class="text-muted mt-2">Default image</small>
+                                        <% } %>
+                                    </div>
+                                <% }) %>
+                            <% } %>
                         </div>
-                        <input name="listing[image]" id="image" class="form-control" type="file" accept="image/*">
-                        <small class="text-muted">Upload a new image to replace the current one.</small>
+                        <input
+                            name="listing[images]"
+                            id="images"
+                            class="form-control"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                        >
+                        <small class="text-muted">Upload up to 10 new images (10 MB each). Checked images will be removed after update.</small>
+                        <div class="selected-upload-images mt-3" data-selected-preview></div>
+                        <small class="text-muted d-block mt-2" data-selected-summary></small>
 
                     </div>
 
@@ -71,4 +100,5 @@
                 </form>
             </div>
         </div>
+        <script src="/js/listing-image-picker.js"></script>
     </body>

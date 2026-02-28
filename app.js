@@ -106,6 +106,16 @@ app.use((err, req, res, next) => {
     // Convert multer validation errors to clean request errors.
     if (err.name === "MulterError") {
         statusCode = 400;
+
+        if (err.code === "LIMIT_FILE_SIZE") {
+            message = "Each image must be 10 MB or smaller.";
+        } else if (err.code === "LIMIT_FILE_COUNT") {
+            message = "You can upload up to 10 images per listing.";
+        } else if (err.code === "LIMIT_UNEXPECTED_FILE") {
+            message = "Unexpected upload field. Please upload images in the listing image input.";
+        } else {
+            message = "Image upload failed. Please check your files and try again.";
+        }
     }
 
     // Show a clear message for Cloudinary auth/config issues.

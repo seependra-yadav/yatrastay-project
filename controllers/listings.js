@@ -1,6 +1,58 @@
 const Listing = require("../models/listing.js");
 const ExpressError = require("../utilis/ExpressError.js");
 const { geocodeListingLocation } = require("../utilis/geocoder.js");
+const { cloudinary } = require("../utilis/cloudeConfig.js");
+
+const DEFAULT_IMAGE =
+    "https://images.unsplash.com/photo-1625505826533-5c80aca7d157?auto=format&fit=crop&w=800&q=60";
+const DEFAULT_IMAGE_FILENAME = "default-listing-image";
+
+const normalizeImage = (value) => {
+    if (!value) {
+        return { url: DEFAULT_IMAGE, filename: DEFAULT_IMAGE_FILENAME };
+    }
+
+    if (typeof value === "string") {
+        return { url: value || DEFAULT_IMAGE, filename: DEFAULT_IMAGE_FILENAME };
+    }
+
+    return {
+        url: value.url || DEFAULT_IMAGE,
+        filename: value.filename || DEFAULT_IMAGE_FILENAME,
+    };
+};
+
+const extractUploadedImages = (files = []) => {
+    return files.map((file) => ({
+        url: file.path,
+        filename: file.filename,
+    }));
+};
+
+const parseDeleteImages = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    return [value];
+};
+
+const getCurrentImages = (listing) => {
+    const hasGalleryImages = Array.isArray(listing.images) && listing.images.length > 0;
+    const normalizedGallery = hasGalleryImages
+        ? listing.images.map((img) => normalizeImage(img))
+        : [];
+
+    const hasOnlyDefaultGalleryImage =
+        normalizedGallery.length === 1 &&
+        normalizedGallery[0].filename === DEFAULT_IMAGE_FILENAME &&
+        normalizedGallery[0].url === DEFAULT_IMAGE;
+
+    // Use legacy image if gallery still has only default image.
+    if (listing.image && (normalizedGallery.length === 0 || hasOnlyDefaultGalleryImage)) {
+        return [normalizeImage(listing.image)];
+    }
+
+    return normalizedGallery.length > 0 ? normalizedGallery : [normalizeImage(null)];
+};
 
 // GET /listings
 module.exports.index = async (req, res) => {
@@ -47,12 +99,9 @@ module.exports.showListing = async (req, res) => {
 module.exports.createListing = async (req, res) => {
     const newListing = new Listing(req.body.listing);
 
-    // Save Cloudinary URL + filename when upload exists.
-    if (req.file) {
-        newListing.image = {
-            url: req.file.path,
-            filename: req.file.filename,
-        };
+    // Save all uploaded files as listing images.
+    if (req.files && req.files.length > 0) {
+        newListing.images = extractUploadedImages(req.files);
     }
 
     // Resolve and store map coordinates from location text.
@@ -94,15 +143,22 @@ module.exports.updateListing = async (req, res) => {
         existingListing.location !== updatedListingData.location ||
         existingListing.country !== updatedListingData.country;
 
-    // Replace image only when a new file is uploaded.
-    if (req.file) {
-        updatedListingData.image = {
-            url: req.file.path,
-            filename: req.file.filename,
-        };
-    } else {
-        updatedListingData.image = existingListing.image;
-    }
+    const deleteFilenames = new Set(parseDeleteImages(req.body.deleteImages));
+    const currentImages = getCurrentImages(existingListing);
+    const uploadedImages = extractUploadedImages(req.files);
+
+    // Remove selected images, then append new uploads.
+    const remainingImages = currentImages.filter(
+        (img) => !deleteFilenames.has(img.filename)
+    );
+    const finalImages =
+        remainingImages.concat(uploadedImages).length > 0
+            ? remainingImages.concat(uploadedImages)
+            : [normalizeImage(null)];
+
+    // Keep old single-image field in sync for legacy records.
+    updatedListingData.image = finalImages[0];
+    updatedListingData.images = finalImages;
 
     // Re-geocode only when location fields change.
     if (hasLocationChanged) {
@@ -113,6 +169,18 @@ module.exports.updateListing = async (req, res) => {
     }
 
     await Listing.findByIdAndUpdate(id, updatedListingData);
+
+    // Delete removed assets from Cloudinary storage.
+    const removedImages = currentImages.filter((img) => deleteFilenames.has(img.filename));
+    const removableCloudinaryImages = removedImages.filter(
+        (img) => img.filename && img.filename !== DEFAULT_IMAGE_FILENAME
+    );
+    await Promise.all(
+        removableCloudinaryImages.map((img) =>
+            cloudinary.uploader.destroy(img.filename).catch(() => null)
+        )
+    );
+
     req.flash("success", "Listing updated successfully");
     res.redirect(`/listings/${id}`);
 };

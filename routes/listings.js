@@ -8,10 +8,15 @@ const listingsController = require("../controllers/listings.js");
 const { validateListing, isLoggedIn, isListingOwner } = require("../middleware.js");
 
 const allowedMimeTypes = ["image/png", "image/jpg", "image/jpeg"];
+const MAX_IMAGES_PER_LISTING = 10;
+const MAX_IMAGE_SIZE_MB = 10;
 
 const upload = multer({
     storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    limits: {
+        fileSize: MAX_IMAGE_SIZE_MB * 1024 * 1024, // Per-image limit.
+        files: MAX_IMAGES_PER_LISTING,
+    },
     fileFilter: (req, file, cb) => {
         // Accept only png, jpg, jpeg files.
         if (allowedMimeTypes.includes(file.mimetype)) return cb(null, true);
@@ -25,7 +30,7 @@ router
     .get(wrapAsync(listingsController.index))
     .post(
         isLoggedIn,
-        upload.single("listing[image]"),
+        upload.array("listing[images]", MAX_IMAGES_PER_LISTING),
         validateListing,
         wrapAsync(listingsController.createListing)
     );
@@ -40,7 +45,7 @@ router
     .put(
         isLoggedIn,
         isListingOwner,
-        upload.single("listing[image]"),
+        upload.array("listing[images]", MAX_IMAGES_PER_LISTING),
         validateListing,
         wrapAsync(listingsController.updateListing)
     )
