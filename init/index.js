@@ -1,20 +1,39 @@
 const mongoose = require("mongoose");
 const initData = require("./data.js");
-const Listing = require("../models/listing.js")
+const Listing = require("../models/listing.js");
+const User = require("../models/user.js");
 
-async function main(){
-    await mongoose.connect('mongodb://127.0.0.1:27017/YatraStay');
-}
-main().then(() => {
-    console.log("connected succes to db")
-}).catch((err)=>console.log(err))
+const DEFAULT_HOST_EMAIL = "demo1234@gmail.com";
+const DEFAULT_HOST_NAME = "Demo Host";
 
+const seedDatabase = async () => {
+    try {
+        await mongoose.connect("mongodb://127.0.0.1:27017/YatraStay");
+        console.log("Connected to DB");
 
-const initDb = async ()=>{
-    await Listing.deleteMany({});
-    await Listing.insertMany(initData.data);
-    console.log("data was initialized");
+        // Ensure default host exists for seeded listings.
+        let hostUser = await User.findOne({ email: DEFAULT_HOST_EMAIL });
+        if (!hostUser) {
+            hostUser = await User.create({
+                name: DEFAULT_HOST_NAME,
+                email: DEFAULT_HOST_EMAIL,
+            });
+        }
 
+        // Attach owner to each seed listing.
+        const listingsWithOwner = initData.data.map((listing) => ({
+            ...listing,
+            owner: hostUser._id,
+        }));
+
+        await Listing.deleteMany({});
+        await Listing.insertMany(listingsWithOwner);
+        console.log("Seed data initialized");
+    } catch (err) {
+        console.error("Seed failed:", err);
+    } finally {
+        await mongoose.connection.close();
+    }
 };
 
-initDb();
+seedDatabase();

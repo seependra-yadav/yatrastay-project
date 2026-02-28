@@ -4,7 +4,8 @@ const listingSchema = Joi.object({
     listing: Joi.object({
         title: Joi.string().trim().required(),
         description: Joi.string().trim().required(),
-        image: Joi.string().allow("").trim(),
+        // Image is uploaded via multer; keep this optional for form payloads.
+        image: Joi.any().optional(),
         price: Joi.number().min(0).required(),
         location: Joi.string().trim().required(),
         country: Joi.string().trim().required()
