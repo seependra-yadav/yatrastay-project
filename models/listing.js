@@ -15,6 +15,21 @@ const imageSchema = new Schema(
     { _id: false }
 );
 
+const geometrySchema = new Schema(
+    {
+        type: {
+            type: String,
+            enum: ["Point"],
+            required: true,
+        },
+        coordinates: {
+            type: [Number],
+            required: true,
+        },
+    },
+    { _id: false }
+);
+
 // Listing document. `owner` controls edit/update/delete authorization.
 const listingSchema = new Schema({
     title: {
@@ -47,6 +62,10 @@ const listingSchema = new Schema({
     price: Number,
     location: String,
     country: String,
+    geometry: {
+        type: geometrySchema,
+        default: null,
+    },
     owner: {
         type: Schema.Types.ObjectId,
         ref: "User",
@@ -58,6 +77,9 @@ const listingSchema = new Schema({
         }
     ]
 });
+
+// Enables geospatial queries when needed.
+listingSchema.index({ geometry: "2dsphere" });
 
 // Unified image URL for both old (string) and new ({ url, filename }) records.
 listingSchema.virtual("imageUrl").get(function () {

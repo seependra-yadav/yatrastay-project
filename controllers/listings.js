@@ -1,5 +1,6 @@
 const Listing = require("../models/listing.js");
 const ExpressError = require("../utilis/ExpressError.js");
+const { geocodeListingLocation } = require("../utilis/geocoder.js");
 
 // GET /listings
 module.exports.index = async (req, res) => {
@@ -30,6 +31,15 @@ module.exports.showListing = async (req, res) => {
         throw new ExpressError(404, "Listing not found");
     }
 
+    // Backfill geometry for older listings that were created before map support.
+    if (!listing.geometry) {
+        const geometry = await geocodeListingLocation(listing.location, listing.country);
+        if (geometry) {
+            listing.geometry = geometry;
+            await listing.save();
+        }
+    }
+
     res.render("./listings/show.ejs", { listing });
 };
 
@@ -44,6 +54,12 @@ module.exports.createListing = async (req, res) => {
             filename: req.file.filename,
         };
     }
+
+    // Resolve and store map coordinates from location text.
+    newListing.geometry = await geocodeListingLocation(
+        newListing.location,
+        newListing.country
+    );
 
     newListing.owner = req.user._id;
     await newListing.save();
@@ -74,6 +90,9 @@ module.exports.updateListing = async (req, res) => {
     }
 
     const updatedListingData = { ...req.body.listing };
+    const hasLocationChanged =
+        existingListing.location !== updatedListingData.location ||
+        existingListing.country !== updatedListingData.country;
 
     // Replace image only when a new file is uploaded.
     if (req.file) {
@@ -83,6 +102,14 @@ module.exports.updateListing = async (req, res) => {
         };
     } else {
         updatedListingData.image = existingListing.image;
+    }
+
+    // Re-geocode only when location fields change.
+    if (hasLocationChanged) {
+        updatedListingData.geometry = await geocodeListingLocation(
+            updatedListingData.location,
+            updatedListingData.country
+        );
     }
 
     await Listing.findByIdAndUpdate(id, updatedListingData);
