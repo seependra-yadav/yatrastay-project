@@ -1,4 +1,5 @@
 const Listing = require("../models/listing.js");
+const Reservation = require("../models/reservation.js");
 const ExpressError = require("../utilis/ExpressError.js");
 const { geocodeListingLocation } = require("../utilis/geocoder.js");
 const { cloudinary } = require("../utilis/cloudeConfig.js");
@@ -6,6 +7,16 @@ const { cloudinary } = require("../utilis/cloudeConfig.js");
 const DEFAULT_IMAGE =
     "https://images.unsplash.com/photo-1625505826533-5c80aca7d157?auto=format&fit=crop&w=800&q=60";
 const DEFAULT_IMAGE_FILENAME = "default-listing-image";
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const parseDateOnly = (value) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
 
 const normalizeImage = (value) => {
     if (!value) {
@@ -56,8 +67,97 @@ const getCurrentImages = (listing) => {
 
 // GET /listings
 module.exports.index = async (req, res) => {
-    const allListings = await Listing.find({}).populate("owner", "name email");
-    res.render("./listings/index.ejs", { allListings });
+    const anywhere =
+        typeof req.query.anywhere === "string" ? req.query.anywhere.trim() : "";
+    const checkInRaw = typeof req.query.checkIn === "string" ? req.query.checkIn : "";
+    const checkOutRaw =
+        typeof req.query.checkOut === "string" ? req.query.checkOut : "";
+    const guestsRaw = typeof req.query.guests === "string" ? req.query.guests : "";
+
+    const listingQuery = {};
+    if (anywhere) {
+        const searchPattern = new RegExp(escapeRegex(anywhere), "i");
+        listingQuery.$or = [
+            { title: searchPattern },
+            { location: searchPattern },
+            { country: searchPattern },
+        ];
+    }
+
+    let allListings = await Listing.find(listingQuery)
+        .populate("owner", "name email")
+        .populate("reviews", "rating");
+
+    const checkInDate = parseDateOnly(checkInRaw);
+    const checkOutDate = parseDateOnly(checkOutRaw);
+    const hasDateSearch =
+        checkInDate &&
+        checkOutDate &&
+        checkOutDate.getTime() > checkInDate.getTime();
+
+    if (hasDateSearch) {
+        const overlappingListingIds = await Reservation.distinct("listing", {
+            status: "confirmed",
+            checkIn: { $lt: checkOutDate },
+            checkOut: { $gt: checkInDate },
+        });
+        const overlappingIdSet = new Set(overlappingListingIds.map((id) => String(id)));
+        allListings = allListings.filter(
+            (listing) => !overlappingIdSet.has(String(listing._id))
+        );
+    }
+
+    const selectedGuests = Number.parseInt(guestsRaw, 10);
+    const hasGuestSearch = Number.isInteger(selectedGuests) && selectedGuests > 0;
+    if (hasGuestSearch) {
+        allListings = allListings.filter((listing) => {
+            const capacity =
+                Number.isInteger(listing.maxGuests) && listing.maxGuests > 0
+                    ? listing.maxGuests
+                    : 4;
+            return capacity >= selectedGuests;
+        });
+    }
+
+    // Precompute rating metadata for cleaner UI rendering.
+    const listingCards = allListings.map((listing) => {
+        const ratings = (listing.reviews || [])
+            .map((review) => Number(review.rating))
+            .filter((value) => Number.isFinite(value) && value >= 1 && value <= 5);
+
+        const reviewCount = ratings.length;
+        const averageRating =
+            reviewCount > 0
+                ? Number((ratings.reduce((sum, value) => sum + value, 0) / reviewCount).toFixed(2))
+                : null;
+        const displayNights =
+            Number.isInteger(listing.displayNights) && listing.displayNights > 0
+                ? listing.displayNights
+                : 2;
+
+        return {
+            listing,
+            reviewCount,
+            averageRating,
+            displayNights,
+        };
+    });
+
+    res.render("./listings/index.ejs", {
+        listingCards,
+        searchMeta: {
+            anywhere,
+            checkIn: checkInRaw,
+            checkOut: checkOutRaw,
+            guests: hasGuestSearch ? selectedGuests : "",
+            hasActiveFilters: Boolean(anywhere || hasDateSearch || hasGuestSearch),
+            searchedNights: hasDateSearch
+                ? Math.ceil(
+                      (checkOutDate.getTime() - checkInDate.getTime()) / MILLISECONDS_PER_DAY
+                  )
+                : null,
+        },
+    });
 };
 
 // GET /listings/new
@@ -83,6 +183,18 @@ module.exports.showListing = async (req, res) => {
         throw new ExpressError(404, "Listing not found");
     }
 
+    const propertyReservations = await Reservation.find({
+        listing: listing._id,
+        status: "confirmed",
+    })
+        .populate("guest", "name email")
+        .sort({ checkIn: 1 });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
     // Backfill geometry for older listings that were created before map support.
     if (!listing.geometry) {
         const geometry = await geocodeListingLocation(listing.location, listing.country);
@@ -92,7 +204,12 @@ module.exports.showListing = async (req, res) => {
         }
     }
 
-    res.render("./listings/show.ejs", { listing });
+    res.render("./listings/show.ejs", {
+        listing,
+        propertyReservations,
+        reservationMinCheckIn: today.toISOString().slice(0, 10),
+        reservationMinCheckOut: tomorrow.toISOString().slice(0, 10),
+    });
 };
 
 // POST /listings

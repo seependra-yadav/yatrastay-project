@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Review = require("./review.js");
+const Reservation = require("./reservation.js");
 
 const Schema = mongoose.Schema;
 
@@ -94,6 +95,20 @@ const listingSchema = new Schema({
         set: normalizeImages,
     },
     price: Number,
+    // Host-controlled nights value for listing card price summary.
+    displayNights: {
+        type: Number,
+        min: 1,
+        max: 30,
+        default: 2,
+    },
+    // Max guests allowed for this property.
+    maxGuests: {
+        type: Number,
+        min: 1,
+        max: 20,
+        default: 4,
+    },
     location: String,
     country: String,
     geometry: {
@@ -133,9 +148,13 @@ listingSchema.virtual("imageGallery").get(function () {
 
 // Data cleanup: when listing is deleted, remove linked reviews too.
 listingSchema.post("findOneAndDelete", async (listing) => {
-    if (listing && listing.reviews.length > 0) {
+    if (!listing) return;
+
+    if (listing.reviews.length > 0) {
         await Review.deleteMany({ _id: { $in: listing.reviews } });
     }
+
+    await Reservation.deleteMany({ listing: listing._id });
 });
 
 

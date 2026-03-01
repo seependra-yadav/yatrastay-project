@@ -14,6 +14,8 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 const ExpressError = require("./utilis/ExpressError.js");
 const listingsRouter = require("./routes/listings.js");
 const reviewsRouter = require("./routes/reviews.js");
+const listingReservationsRouter = require("./routes/listingReservations.js");
+const reservationsRouter = require("./routes/reservations.js");
 const usersRouter = require("./routes/users.js");
 const User = require("./models/user.js");
 
@@ -75,17 +77,31 @@ app.use((req, res, next) => {
     res.locals.success = req.flash("success");
     res.locals.error = req.flash("error");
     res.locals.currUser = req.user;
+    res.locals.isHostUser = Boolean(req.user && req.user.role === "host");
+    res.locals.searchFilters = {
+        anywhere: typeof req.query.anywhere === "string" ? req.query.anywhere : "",
+        checkIn: typeof req.query.checkIn === "string" ? req.query.checkIn : "",
+        checkOut: typeof req.query.checkOut === "string" ? req.query.checkOut : "",
+        guests: typeof req.query.guests === "string" ? req.query.guests : "",
+    };
     next();
 });
 
-// Health route.
+// Keep root URL aligned with the listings home page.
 app.get("/", (req, res) => {
+    res.redirect("/listings");
+});
+
+// Lightweight health check for local monitoring.
+app.get("/health", (req, res) => {
     res.send("server working");
 });
 
 // Feature routes.
 app.use("/listings", listingsRouter);
 app.use("/listings/:id/reviews", reviewsRouter);
+app.use("/listings/:id/reservations", listingReservationsRouter);
+app.use("/reservations", reservationsRouter);
 app.use("/", usersRouter);
 
 // Not found handler.

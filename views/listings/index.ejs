@@ -1,32 +1,52 @@
 <% layout("./layouts/boilerplate") %>
 
     <body>
-        <h1>all Listings</h1>
-        <!-- <form method="GET" action="/listings/new">
-        <button>Create New Listing</button>
-    
-    </form> -->
+        <h1 class="listings-page-title">Places to stay</h1>
+        <% const meta = searchMeta || {}; %>
+        <% if (meta.hasActiveFilters) { %>
+            <p class="listings-search-meta text-muted">
+                Showing <%= listingCards.length %> result<%= listingCards.length === 1 ? "" : "s" %>
+                <% if (meta.anywhere) { %> for "<%= meta.anywhere %>"<% } %>
+                <% if (meta.searchedNights) { %> in <%= meta.searchedNights %> night<%= meta.searchedNights > 1 ? "s" : "" %><% } %>
+                <% if (meta.guests) { %> for <%= meta.guests %> guest<%= meta.guests > 1 ? "s" : "" %><% } %>
+            </p>
+        <% } %>
 
-        <div class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1">
-            <% for(let listing of allListings){ %>
-                <a href="/listings/<%= listing._id %>" class="listing-link">
-                    <div class="card col">
-                        <img src="<%= listing.imageUrl %>" class="card-img-top" alt="listing_image"
-                            style="height: 18rem;" />
-                             <div class="card-img-overlay"></div>
-                        <div class="card-body">
-                            <p class="card-text">
-                                <% const ownerName = listing.owner ? (listing.owner.name || listing.owner.email) : "Unknown host"; %>
-                                <b>
-                                    <%= listing.title %>
-                                </b> <br>
-                                <%= listing.price != null ? listing.price.toLocaleString("en-IN") : "Price not available" %> <br>
-                                Host: <%= ownerName %>
-                            </p>
+        <% if (!listingCards || listingCards.length === 0) { %>
+            <div class="alert alert-light border listings-empty-state">
+                No listings found for the current search filters.
+            </div>
+        <% } else { %>
+            <div class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1">
+                <% for (let card of listingCards) { %>
+                    <% const listing = card.listing; %>
+                    <% const displayNights = card.displayNights || 2; %>
+                    <% const packagePrice = typeof listing.price === "number" ? listing.price * displayNights : null; %>
+                    <a href="/listings/<%= listing._id %>" class="listing-link listing-card-link">
+                        <div class="card col listing-premium-card">
+                            <img src="<%= listing.imageUrl %>" class="card-img-top listing-premium-image" alt="listing_image"
+                                style="height: 18rem;" />
+                            <div class="card-img-overlay"></div>
+                            <div class="card-body listing-premium-body">
+                                <h5 class="listing-premium-title"><%= listing.title %></h5>
+                                <p class="listing-premium-subline">
+                                    <% if (packagePrice != null) { %>
+                                        <span>&#8377;<%= packagePrice.toLocaleString("en-IN") %> for <%= displayNights %> night<%= displayNights > 1 ? "s" : "" %></span>
+                                    <% } else { %>
+                                        <span>Price not available</span>
+                                    <% } %>
+                                    <span class="listing-dot">&bull;</span>
+                                    <% if (card.averageRating != null) { %>
+                                        <span>&#9733; <%= card.averageRating.toFixed(2) %></span>
+                                    <% } else { %>
+                                        <span>&#9733; New</span>
+                                    <% } %>
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                </a>
+                    </a>
 
-                <% }%>
-        </div>
+                <% } %>
+            </div>
+        <% } %>
     </body>

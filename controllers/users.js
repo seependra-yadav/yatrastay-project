@@ -66,3 +66,32 @@ module.exports.logout = async (req, res) => {
 
     res.redirect("/listings");
 };
+
+// GET /become-host
+module.exports.renderBecomeHost = (req, res) => {
+    if (req.user && req.user.role === "host") {
+        req.flash("success", "Your host account is already active.");
+        return res.redirect("/listings/new");
+    }
+
+    res.render("users/become-host.ejs");
+};
+
+// POST /become-host
+module.exports.becomeHost = async (req, res) => {
+    if (!req.user) {
+        req.flash("error", "Please login first");
+        return res.redirect("/login");
+    }
+
+    if (req.user.role === "host") {
+        req.flash("success", "Your host account is already active.");
+        return res.redirect("/listings/new");
+    }
+
+    await User.findByIdAndUpdate(req.user._id, { role: "host" });
+    req.user.role = "host";
+
+    req.flash("success", "Host profile activated. You can now list properties.");
+    return res.redirect("/listings/new");
+};

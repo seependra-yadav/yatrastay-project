@@ -1,0 +1,46 @@
+<% layout("/layouts/boilerplate") %>
+
+<div class="row mt-4 mb-4">
+    <div class="col-lg-10 offset-lg-1">
+        <h3 class="mb-3 reservations-page-title">My reservations</h3>
+
+        <% if (!reservations || reservations.length === 0) { %>
+            <div class="alert alert-light border reservation-empty-state">No reservations yet. Explore listings and reserve your stay.</div>
+        <% } else { %>
+            <% reservations.forEach((reservation) => { %>
+                <% const listing = reservation.listing; %>
+                <div class="card shadow-sm border-0 mb-3 reservation-card-premium">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap justify-content-between gap-2">
+                            <div>
+                                <h5 class="mb-1 reservation-listing-title"><%= listing ? listing.title : "Listing removed" %></h5>
+                                <p class="text-muted mb-2 reservation-listing-location">
+                                    <%= listing ? `${listing.location}, ${listing.country}` : "Location unavailable" %>
+                                </p>
+                                <div class="small reservation-meta-grid">
+                                    <strong>Check-in:</strong> <%= reservation.checkIn.toDateString() %><br>
+                                    <strong>Check-out:</strong> <%= reservation.checkOut.toDateString() %><br>
+                                    <strong>Guests:</strong> <%= reservation.guests %> |
+                                    <strong>Nights:</strong> <%= reservation.nights %><br>
+                                    <strong>Total:</strong> <span class="reservation-total-price">&#8377; <%= reservation.totalPrice.toLocaleString("en-IN") %></span><br>
+                                    <strong>Status:</strong>
+                                    <span class="reservation-status-pill reservation-status-<%= reservation.status %>"><%= reservation.status %></span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-start">
+                                <% if (reservation.status === "confirmed") { %>
+                                    <form method="POST" action="/reservations/<%= reservation._id %>?_method=DELETE">
+                                        <button class="btn btn-sm btn-outline-danger reservation-cancel-btn">Cancel reservation</button>
+                                    </form>
+                                <% } else { %>
+                                    <span class="badge text-bg-secondary reservation-cancelled-badge">Cancelled</span>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        <% } %>
+    </div>
+</div>

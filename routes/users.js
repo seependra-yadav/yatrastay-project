@@ -2,7 +2,7 @@ const express = require("express");
 const passport = require("passport");
 const router = express.Router();
 const usersController = require("../controllers/users.js");
-const { saveRedirectUrl } = require("../middleware.js");
+const { isLoggedIn, saveRedirectUrl } = require("../middleware.js");
 
 // Signup routes.
 router
@@ -26,5 +26,9 @@ router.post(
 
 // Logout route.
 router.get("/logout", usersController.logout);
+
+// Become host routes.
+router.get("/become-host", isLoggedIn, usersController.renderBecomeHost);
+router.post("/become-host", isLoggedIn, usersController.becomeHost);
 
 module.exports = router;

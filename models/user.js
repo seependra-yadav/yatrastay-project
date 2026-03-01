@@ -17,6 +17,11 @@ const userSchema = new Schema(
             unique: true,
             trim: true,
         },
+        role: {
+            type: String,
+            enum: ["user", "host"],
+            default: "user",
+        },
     },
     { timestamps: true }
 );

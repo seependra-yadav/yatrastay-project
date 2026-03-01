@@ -20,12 +20,18 @@
                 </div>
                 <div class="card-body">
                     <p class="card-text">
+                        <% const listingDisplayNights = (listing.displayNights && listing.displayNights > 0) ? listing.displayNights : 2; %>
+                        <% const listingPackagePrice = listing.price != null ? listing.price * listingDisplayNights : null; %>
                         
                         <br>
                         <%= listing.description%>
                             <br>
                             <% if (listing.price != null) { %>
-                                &#8377; <%= listing.price.toLocaleString("en-IN") %>
+                                &#8377; <%= listing.price.toLocaleString("en-IN") %> per night
+                                <br>
+                                &#8377; <%= listingPackagePrice.toLocaleString("en-IN") %> for <%= listingDisplayNights %> night<%= listingDisplayNights > 1 ? "s" : "" %>
+                                <br>
+                                Up to <%= listing.maxGuests || 4 %> guests
                             <% } else { %>
                                 Price not available
                             <% } %>
@@ -50,9 +56,99 @@
                     </form>
                 <% } %>
             </div>
+
+            <div class="col-8 offset-3 mb-3 reserve-panel">
+                <h4>Reserve this property</h4>
+                <% if (!currUser) { %>
+                    <p class="text-muted reserve-note">Please <a href="/login">login</a> to reserve this property.</p>
+                <% } else if (isListingOwner) { %>
+                    <p class="text-muted reserve-note">You are the host of this property.</p>
+                <% } else if (listing.price == null) { %>
+                    <p class="text-muted reserve-note">Reservation is unavailable because price is missing.</p>
+                <% } else { %>
+                    <form action="/listings/<%= listing.id %>/reservations" method="POST" class="row g-3 needs-validation reserve-form" novalidate>
+                        <div class="col-md-4">
+                            <label class="form-label" for="checkIn">Check-in</label>
+                            <input
+                                id="checkIn"
+                                type="date"
+                                name="reservation[checkIn]"
+                                class="form-control reserve-input"
+                                min="<%= reservationMinCheckIn %>"
+                                required
+                            >
+                            <div class="invalid-feedback">Select a valid check-in date.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="checkOut">Check-out</label>
+                            <input
+                                id="checkOut"
+                                type="date"
+                                name="reservation[checkOut]"
+                                class="form-control reserve-input"
+                                min="<%= reservationMinCheckOut %>"
+                                required
+                            >
+                            <div class="invalid-feedback">Select a valid check-out date.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="guestCount">Guests</label>
+                            <input
+                                id="guestCount"
+                                type="number"
+                                name="reservation[guests]"
+                                class="form-control reserve-input"
+                                min="1"
+                                max="<%= listing.maxGuests || 4 %>"
+                                value="1"
+                                required
+                            >
+                            <div class="invalid-feedback">Guests must be between 1 and <%= listing.maxGuests || 4 %>.</div>
+                        </div>
+                        <div class="col-12">
+                            <p class="mb-2 text-muted small reserve-price">Price: &#8377; <%= listing.price.toLocaleString("en-IN") %> per night.</p>
+                            <button class="btn reserve-cta-btn">Reserve now</button>
+                        </div>
+                    </form>
+                <% } %>
+            </div>
+
+            <% if (isListingOwner) { %>
+                <div class="col-8 offset-3 mb-3 host-reservations-panel">
+                    <h4>Upcoming reservations</h4>
+                    <% if (!propertyReservations || propertyReservations.length === 0) { %>
+                        <p class="text-muted">No active reservations for this listing.</p>
+                    <% } else { %>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle host-reservation-table">
+                                <thead>
+                                    <tr>
+                                        <th>Guest</th>
+                                        <th>Check-in</th>
+                                        <th>Check-out</th>
+                                        <th>Guests</th>
+                                        <th>Nights</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% propertyReservations.forEach((reservation) => { %>
+                                        <tr>
+                                            <td><%= reservation.guest && reservation.guest.name ? reservation.guest.name : "Guest" %></td>
+                                            <td><%= reservation.checkIn.toDateString() %></td>
+                                            <td><%= reservation.checkOut.toDateString() %></td>
+                                            <td><%= reservation.guests %></td>
+                                            <td><%= reservation.nights %></td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } %>
+                </div>
+            <% } %>
            
 
-            <div class="col-8 offset-3 mb-3">
+            <div class="col-8 offset-3 mb-3 review-form-panel">
                 <h4>Leave a review</h4>
                 <% // Only logged-in users can submit review. %>
                 <% if (currUser) { %>
@@ -98,14 +194,14 @@
                             <div class="invalid-feedback">Comment must be between 5 and 500 characters.</div>
                         </div>
 
-                        <button class="btn btn-outline-dark ">submit</button>
+                        <button class="btn review-submit-btn">Submit review</button>
                     </form>
                 <% } else { %>
                     <p class="text-muted">Please <a href="/login">login</a> to add a review.</p>
                 <% } %>
             </div>
 
-            <div class="col-8 offset-3 mb-3">
+            <div class="col-8 offset-3 mb-3 reviews-list-panel">
                 <h4>All Reviews</h4>
 
                 <% if (!listing.reviews || listing.reviews.length === 0) { %>
@@ -116,8 +212,8 @@
                         <% const reviewAuthorName = review.author && review.author.name ? review.author.name : "Guest"; %>
                         <% // UI guard: only review author sees delete button. %>
                         <% const isReviewOwner = currUser && review.author && String(currUser._id) === String(review.author._id); %>
-                        <div class="card shadow-sm border-0 mb-3">
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <div class="card shadow-sm border-0 mb-3 review-premium-card">
+                            <div class="card-header review-premium-header d-flex justify-content-between align-items-center">
                                 <span class="fw-semibold"><%= reviewAuthorName %></span>
                                 <div class="review-rating rating-<%= review.rating %>" aria-label="Rated <%= review.rating %> out of 5">
                                     <% for (let i = 1; i <= 5; i++) { %>
@@ -125,13 +221,13 @@
                                     <% } %>
                                 </div>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body review-premium-body">
                                 <p class="card-text mb-0"><%= review.comment %></p>
                             </div>
                             <% if (isReviewOwner) { %>
-                                <div class="card-footer bg-white border-0 pt-0">
+                                <div class="card-footer bg-white border-0 pt-0 review-premium-footer">
                                     <form action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=DELETE" method="POST">
-                                        <button class="btn btn-sm btn-outline-danger">Delete Review</button>
+                                        <button class="btn btn-sm btn-outline-danger review-delete-btn">Delete Review</button>
                                     </form>
                                 </div>
                             <% } %>

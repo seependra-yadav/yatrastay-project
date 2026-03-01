@@ -5,7 +5,7 @@ const router = express.Router();
 const wrapAsync = require("../utilis/wrapAsync.js");
 const { storage } = require("../utilis/cloudeConfig.js");
 const listingsController = require("../controllers/listings.js");
-const { validateListing, isLoggedIn, isListingOwner } = require("../middleware.js");
+const { validateListing, isLoggedIn, isHost, isListingOwner } = require("../middleware.js");
 
 const allowedMimeTypes = ["image/png", "image/jpg", "image/jpeg"];
 const MAX_IMAGES_PER_LISTING = 10;
@@ -30,13 +30,14 @@ router
     .get(wrapAsync(listingsController.index))
     .post(
         isLoggedIn,
+        isHost,
         upload.array("listing[images]", MAX_IMAGES_PER_LISTING),
         validateListing,
         wrapAsync(listingsController.createListing)
     );
 
 // New listing form.
-router.get("/new", isLoggedIn, listingsController.renderNewForm);
+router.get("/new", isLoggedIn, isHost, listingsController.renderNewForm);
 
 // Listing item routes.
 router

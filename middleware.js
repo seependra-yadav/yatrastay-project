@@ -1,5 +1,5 @@
 const ExpressError = require("./utilis/ExpressError.js");
-const { listingSchema, reviewSchema } = require("./schema.js");
+const { listingSchema, reviewSchema, reservationSchema } = require("./schema.js");
 const Listing = require("./models/listing.js");
 const Review = require("./models/review.js");
 
@@ -16,6 +16,16 @@ const validateListing = (req, res, next) => {
 // Request body validation for review create.
 const validateReview = (req, res, next) => {
     const { error } = reviewSchema.validate(req.body, { abortEarly: false });
+    if (error) {
+        const message = error.details.map((detail) => detail.message).join(", ");
+        throw new ExpressError(400, message);
+    }
+    next();
+};
+
+// Request body validation for reservation create.
+const validateReservation = (req, res, next) => {
+    const { error } = reservationSchema.validate(req.body, { abortEarly: false });
     if (error) {
         const message = error.details.map((detail) => detail.message).join(", ");
         throw new ExpressError(400, message);
@@ -84,6 +94,13 @@ const isListingOwner = async (req, res, next) => {
     next();
 };
 
+// Authorization: only host users can create listings.
+const isHost = (req, res, next) => {
+    if (req.user && req.user.role === "host") return next();
+    req.flash("error", "Become a host to create and manage properties.");
+    return res.redirect("/become-host");
+};
+
 // Authorization: only review author can delete review.
 const isReviewAuthor = async (req, res, next) => {
     const { id, reviewId } = req.params;
@@ -104,8 +121,10 @@ const isReviewAuthor = async (req, res, next) => {
 module.exports = {
     validateListing,
     validateReview,
+    validateReservation,
     isLoggedIn,
     saveRedirectUrl,
+    isHost,
     isListingOwner,
     isReviewAuthor,
 };

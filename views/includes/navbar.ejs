@@ -1,24 +1,125 @@
-<nav class="navbar navbar-expand-md bg-body-tertiary border-bottom sticky-top">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/"><i class="fa-regular fa-compass"></i></a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
-            >
+<nav class="navbar navbar-expand-lg app-navbar sticky-top">
+    <div class="container-fluid app-navbar-inner">
+        <% const userIsHost = currUser && currUser.role === "host"; %>
+        <% const hostCtaHref = userIsHost ? "/listings/new" : "/become-host"; %>
+        <% const hostCtaLabel = userIsHost ? "Add property" : "Become a host"; %>
+
+        <a class="navbar-brand app-brand" href="/listings" aria-label="YatraStay home">
+            <i class="fa-brands fa-airbnb"></i>
+            <span>YatraStay</span>
+        </a>
+
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#mainNavbar"
+            aria-controls="mainNavbar"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+        >
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-            <div class="navbar-nav">
-                <a class="nav-link" href="/">Home</a>
-                <a class="nav-link" href="/listings">All Listing</a>
-                <a class="nav-link" href="/listings/new">New Listing</a>
-            </div>
-            <div class="navbar-nav ms-auto">
-                <% if (!currUser) { %>
-                    <a class="nav-link" href="/signup">Sign Up</a>
-                    <a class="nav-link" href="/login">Login</a>
-                <% } else { %>
-                    <span class="nav-link disabled">Hi, <%= currUser.name || currUser.email %></span>
-                    <a class="nav-link" href="/logout">Logout</a>
-                <% } %>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <form class="nav-search-box mx-lg-auto" action="/listings" method="GET">
+                <div class="nav-search-field nav-search-anywhere">
+                    <label class="nav-search-label" for="nav-anywhere">Anywhere</label>
+                    <div class="nav-search-control">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <input
+                            id="nav-anywhere"
+                            class="nav-search-input"
+                            type="text"
+                            name="anywhere"
+                            placeholder="Search city or country"
+                            value="<%= searchFilters && searchFilters.anywhere ? searchFilters.anywhere : '' %>"
+                        >
+                    </div>
+                </div>
+                <span class="nav-search-divider" aria-hidden="true"></span>
+                <div class="nav-search-field nav-search-date">
+                    <label class="nav-search-label" for="nav-checkin">Check-in</label>
+                    <div class="nav-search-control">
+                        <i class="fa-regular fa-calendar"></i>
+                        <input
+                            id="nav-checkin"
+                            class="nav-search-input"
+                            type="date"
+                            name="checkIn"
+                            aria-label="Check-in"
+                            value="<%= searchFilters && searchFilters.checkIn ? searchFilters.checkIn : '' %>"
+                        >
+                    </div>
+                </div>
+                <div class="nav-search-field nav-search-date">
+                    <label class="nav-search-label" for="nav-checkout">Check-out</label>
+                    <div class="nav-search-control">
+                        <i class="fa-regular fa-calendar-check"></i>
+                        <input
+                            id="nav-checkout"
+                            class="nav-search-input"
+                            type="date"
+                            name="checkOut"
+                            aria-label="Check-out"
+                            value="<%= searchFilters && searchFilters.checkOut ? searchFilters.checkOut : '' %>"
+                        >
+                    </div>
+                </div>
+                <span class="nav-search-divider" aria-hidden="true"></span>
+                <div class="nav-search-field nav-search-guests">
+                    <label class="nav-search-label" for="nav-guests">Guests</label>
+                    <div class="nav-search-control">
+                        <i class="fa-solid fa-user-group"></i>
+                        <input
+                            id="nav-guests"
+                            class="nav-search-input"
+                            type="number"
+                            name="guests"
+                            min="1"
+                            max="20"
+                            placeholder="Add guests"
+                            value="<%= searchFilters && searchFilters.guests ? searchFilters.guests : '' %>"
+                        >
+                    </div>
+                </div>
+                <button class="nav-search-btn" type="submit" aria-label="Search listings">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </form>
+
+            <div class="ms-lg-auto app-right-nav">
+                <a class="app-host-link" href="<%= hostCtaHref %>"><%= hostCtaLabel %></a>
+
+                <a class="app-icon-btn" href="/listings" aria-label="Region settings">
+                    <i class="fa-solid fa-globe"></i>
+                </a>
+
+                <div class="dropdown">
+                    <button
+                        class="app-menu-trigger"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                        aria-label="Open account menu"
+                    >
+                        <i class="fa-solid fa-bars"></i>
+                        <i class="fa-solid fa-circle-user"></i>
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end app-menu-dropdown">
+                        <% if (!currUser) { %>
+                            <li><a class="dropdown-item" href="/signup">Sign Up</a></li>
+                            <li><a class="dropdown-item" href="/login">Login</a></li>
+                        <% } else { %>
+                            <li><span class="dropdown-item-text text-muted">Hi, <%= currUser.name || currUser.email %></span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/reservations/my">My Reservations</a></li>
+                            <li><a class="dropdown-item" href="<%= hostCtaHref %>"><%= hostCtaLabel %></a></li>
+                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        <% } %>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
