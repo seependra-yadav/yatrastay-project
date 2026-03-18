@@ -1,8 +1,14 @@
 # YatraStay
 
-YatraStay is a full-stack property booking app inspired by vacation rental platforms. It lets users browse stays, search by destination and dates, create accounts, switch to host mode, publish listings with image uploads, leave reviews, and make reservations.
+YatraStay is a full-stack stay booking web app inspired by vacation rental platforms. It allows users to explore properties, search by destination and trip details, create accounts, become hosts, publish listings with image uploads, leave reviews, and book stays.
 
-This repository is set up as a public portfolio / learning project, not a production deployment.
+Built with &#10084; by Seependra Singh
+
+This repository is presented as a public portfolio and learning project rather than a production deployment.
+
+## Author
+
+Seependra Singh
 
 ## Features
 
