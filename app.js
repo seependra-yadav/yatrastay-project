@@ -20,6 +20,9 @@ const usersRouter = require("./routes/users.js");
 const User = require("./models/user.js");
 
 const app = express();
+const PORT = process.env.PORT || 8080;
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/YatraStay";
+const SESSION_SECRET = process.env.SESSION_SECRET || "yatrastay-secret";
 
 // Fail fast if Cloudinary credentials are missing.
 const requiredCloudinaryEnv = [
@@ -37,14 +40,14 @@ if (missingCloudinaryEnv.length > 0) {
 
 // Session settings for login + flash messages.
 const sessionOptions = {
-    secret: "yatrastay-secret",
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
 };
 
 // Connect DB and sync user indexes.
 const connectDatabase = async () => {
-    await mongoose.connect("mongodb://127.0.0.1:27017/YatraStay");
+    await mongoose.connect(MONGO_URI);
     await User.syncIndexes();
 };
 
@@ -156,6 +159,6 @@ connectDatabase()
         console.error("Database connection error:", err);
     });
 
-app.listen(8080, () => {
-    console.log("Server running on port 8080");
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });

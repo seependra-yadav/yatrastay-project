@@ -5,10 +5,11 @@ const User = require("../models/user.js");
 
 const DEFAULT_HOST_EMAIL = "demo1234@gmail.com";
 const DEFAULT_HOST_NAME = "Demo Host";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/YatraStay";
 
 const seedDatabase = async () => {
     try {
-        await mongoose.connect("mongodb://127.0.0.1:27017/YatraStay");
+        await mongoose.connect(MONGO_URI);
         console.log("Connected to DB");
 
         // Ensure default host exists for seeded listings.

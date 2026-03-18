@@ -1,15 +1,16 @@
 {
   "name": "majorproject",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "YatraStay is a travel stay booking app built with Express, EJS, MongoDB, Passport, and Cloudinary.",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "seed": "node init/index.js",
     "backfill:ownership": "node scripts/backfill-ownership.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "cloudinary": "^1.41.3",
